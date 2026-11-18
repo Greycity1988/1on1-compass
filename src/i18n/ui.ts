@@ -21,7 +21,7 @@ const ko = {
   },
   app: {
     demoBanner:
-      '로컬 데모 모드: 모든 데이터가 이 브라우저에만 저장되고, 구성원 링크도 이 브라우저에서만 열립니다. 팀에서 쓰려면 README의 배포 안내를 따라 주세요.',
+      '데모 모드: 입력한 내용은 이 브라우저에만 저장되고 서버로 보내지 않습니다. 실제 구성원 이름이나 면담 내용은 넣지 마세요. 팀에서 쓰려면 README의 배포 안내를 따라 주세요.',
     invalidLinkTitle: '유효하지 않은 링크입니다',
     invalidLinkBody: (leader: string) =>
       `전달받은 링크 주소를 다시 확인하시거나, 담당 리더${leader ? `(${leader})` : ''}에게 새 링크를 요청해 주세요.`,
@@ -309,7 +309,7 @@ const en: UiStrings = {
   },
   app: {
     demoBanner:
-      'Local demo mode: all data stays in this browser, and member links only open in this browser. To use it with your team, follow the deployment steps in the README.',
+      "Demo mode: what you enter stays in this browser and is never sent to a server. Please don't enter real names or interview content. To use it with your team, follow the deployment steps in the README.",
     invalidLinkTitle: 'This link is not valid',
     invalidLinkBody: (leader: string) =>
       `Check the link you received, or ask your team lead${leader ? ` (${leader})` : ''} for a new one.`,

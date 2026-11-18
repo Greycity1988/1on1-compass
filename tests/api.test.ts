@@ -248,3 +248,21 @@ describe('config', () => {
     expect((await call(configHandler)).body.config.leaderName).toBe('L');
   });
 });
+
+describe('demo mode', () => {
+  it('DEMO_MODE=true ignores a connected database', async () => {
+    __setRedisForTests(undefined);
+    process.env.DEMO_MODE = 'true';
+    process.env.KV_REST_API_URL = 'https://example.invalid';
+    process.env.KV_REST_API_TOKEN = 'test-token';
+    try {
+      expect((await call(configHandler)).body).toEqual({ storage: false });
+      expect((await call(membersHandler, { query: { token: TOKEN_A } })).status).toBe(503);
+      expect((await call(authHandler, { method: 'POST', body: { action: 'login', pin: 'x' } })).status).toBe(503);
+    } finally {
+      delete process.env.DEMO_MODE;
+      delete process.env.KV_REST_API_URL;
+      delete process.env.KV_REST_API_TOKEN;
+    }
+  });
+});

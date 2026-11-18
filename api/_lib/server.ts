@@ -34,8 +34,12 @@ export const __setRedisForTests = (r: RedisLike | null | undefined) => {
   redisOverride = r;
 };
 
+/** DEMO_MODE=true keeps a public demo storage-free even if a database gets connected by mistake. */
+export const isDemoMode = () => process.env.DEMO_MODE === 'true';
+
 export function getRedis(): RedisLike | null {
   if (redisOverride !== undefined) return redisOverride;
+  if (isDemoMode()) return null;
   const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
   return url && token ? (new Redis({ url, token }) as unknown as RedisLike) : null;

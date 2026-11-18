@@ -2,6 +2,8 @@
 
 A pre-1:1 survey and interview copilot for team leads. Send each team member a private link, collect their reflections and DISC profile before the meeting, and get a conversation guide tailored to how that person communicates.
 
+**[Try the live demo →](https://1on1-compass-demo.vercel.app/)** (demo password `1234`; data stays in your browser)
+
 > Available in English and Korean: the app follows the browser language, and a toggle switches it. [한국어 안내 →](README.ko.md)
 
 ## What it does
@@ -22,6 +24,7 @@ A pre-1:1 survey and interview copilot for team leads. Send each team member a p
 | Member list, notes, grades | Returned only to a signed-in leader. |
 | Member link | Can read and submit only its own answers. Answers lock once the interview starts. |
 | Storage | One record per member, so saves don't overwrite each other. |
+| Links and headers | Pages are sent with `Referrer-Policy: no-referrer`, so a member's link is not passed to other sites. They also carry a strict Content Security Policy and cannot be embedded in other sites. |
 
 Anyone with a member's link can open that member's survey, so share links privately.
 
@@ -50,12 +53,17 @@ After the first sign-in the password lives in the database as a hash. `LEADER_PI
 
 Each deployment serves one team and one leader. Deploy separately for each team.
 
+### Running a public demo
+
+Deploy the repository as a separate Vercel project **without** connecting a database, and add `DEMO_MODE=true`. The API then refuses to store anything, even if a database gets connected later by mistake, and the app runs in demo mode in each visitor's browser.
+
 ### Environment variables
 
 | Name | Required | Purpose |
 |---|---|---|
 | `KV_REST_API_URL`, `KV_REST_API_TOKEN` (or `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`) | yes | Upstash Redis connection |
 | `LEADER_PIN` | first deploy | Initial leader password |
+| `DEMO_MODE` | no | `true` for a public demo: the API never stores data |
 | `VITE_FEEDBACK_ISSUES_URL` | no | Where the footer's feedback link opens a new GitHub issue |
 | `VITE_DONATION_URL` | no | Coffee link in the footer |
 
