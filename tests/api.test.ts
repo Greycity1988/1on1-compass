@@ -256,7 +256,7 @@ describe('demo mode', () => {
     process.env.KV_REST_API_URL = 'https://example.invalid';
     process.env.KV_REST_API_TOKEN = 'test-token';
     try {
-      expect((await call(configHandler)).body).toEqual({ storage: false });
+      expect((await call(configHandler)).body).toEqual({ storage: false, demo: true });
       expect((await call(membersHandler, { query: { token: TOKEN_A } })).status).toBe(503);
       expect((await call(authHandler, { method: 'POST', body: { action: 'login', pin: 'x' } })).status).toBe(503);
     } finally {

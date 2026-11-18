@@ -1,8 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { KEYS, fail, getRedis, isLeader, loadAuth, noStore, readBody, sanitizeConfig } from './_lib/server.js';
+import { KEYS, fail, getRedis, isDemoMode, isLeader, loadAuth, noStore, readBody, sanitizeConfig } from './_lib/server.js';
 
 /**
  * GET  -> { storage, setupRequired, config }  public team settings, never the password
+ *         { storage: false, demo }            no database (demo); demo = DEMO_MODE is on
  * PUT  { config } -> { config }               leader session required
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -10,7 +11,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const redis = getRedis();
 
   if (req.method === 'GET') {
-    if (!redis) return res.status(200).json({ storage: false });
+    // `demo` tells an operator whether DEMO_MODE is on (the app treats both cases the same way).
+    if (!redis) return res.status(200).json({ storage: false, demo: isDemoMode() });
     try {
       // Also moves a plain-text password left by older versions into a hash.
       const auth = await loadAuth(redis);
