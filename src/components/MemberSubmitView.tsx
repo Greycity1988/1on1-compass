@@ -19,6 +19,10 @@ interface MemberSubmitViewProps {
   /** Saves the answers; resolves to false when saving failed (the caller shows why). */
   onSubmit: (answers: Record<string, string>, discResult?: DiscSubmissionResult) => Promise<boolean>;
   onExit?: () => void;
+  /** Name of the review round this survey belongs to. */
+  cycleName?: string;
+  /** Closed rounds accept no submissions. */
+  cycleClosed?: boolean;
 }
 
 export const MemberSubmitView: React.FC<MemberSubmitViewProps> = ({
@@ -26,13 +30,17 @@ export const MemberSubmitView: React.FC<MemberSubmitViewProps> = ({
   leaderConfig,
   onSubmit,
   onExit,
+  cycleName,
+  cycleClosed = false,
 }) => {
   const { lang, t } = useLang();
   const [answers, setAnswers] = useState<Record<string, string>>(member.answers || {});
   const [discResult, setDiscResult] = useState<DiscSubmissionResult | undefined>(member.discResult);
   const [isTestModalOpen, setIsTestModalOpen] = useState(false);
   // Once the interview has started the answers are final (the server refuses changes).
-  const isLocked = member.status === 'interviewing' || member.status === 'completed';
+  // A closed round where this member never answered: show only the closed notice.
+  const closedUnanswered = cycleClosed && !member.submittedAt;
+  const isLocked = cycleClosed || member.status === 'interviewing' || member.status === 'completed';
   const [isSubmitted, setIsSubmitted] = useState(member.status === 'submitted' || isLocked);
   const [confirmSubmitOpen, setConfirmSubmitOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -110,14 +118,16 @@ export const MemberSubmitView: React.FC<MemberSubmitViewProps> = ({
             </div>
 
             <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white">
-              {t.member.doneTitle}
+              {closedUnanswered ? t.member.cycleClosed : t.member.doneTitle}
             </h2>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
-              {t.member.doneBody(member.name, leaderLabel)}
+              {closedUnanswered ? null : t.member.doneBody(member.name, leaderLabel)}
             </p>
 
             {isLocked ? (
-              <p className="pt-2 text-[11px] text-slate-400">{t.member.locked}</p>
+              closedUnanswered ? null : (
+                <p className="pt-2 text-[11px] text-slate-400">{cycleClosed ? t.member.cycleClosed : t.member.locked}</p>
+              )
             ) : (
             <div className="pt-4 flex items-center justify-center space-x-3">
               <button
@@ -136,7 +146,7 @@ export const MemberSubmitView: React.FC<MemberSubmitViewProps> = ({
             <div className="p-6 rounded-3xl bg-white dark:bg-[#18191d] border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
               <div className="flex items-center space-x-2">
                 <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-[#A8FF1A]">
-                  {t.member.eyebrow(new Date().getFullYear())}
+                  {cycleName || t.member.eyebrow(new Date().getFullYear())}
                 </span>
                 <span className="text-xs text-slate-400">{t.member.eyebrowNote}</span>
               </div>

@@ -1,10 +1,11 @@
 import React from 'react';
 import { Languages } from 'lucide-react';
-import { useLang } from '../i18n/lang';
+import { isLangLocked, useLang } from '../i18n/lang';
 
 /** Switches between Korean and English; the choice is remembered in this browser. */
 export const LangToggle: React.FC<{ className?: string }> = ({ className = '' }) => {
   const { lang, setLang, t } = useLang();
+  if (isLangLocked) return null;
   return (
     <button
       type="button"

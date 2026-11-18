@@ -6,8 +6,13 @@ export const LANGS: Lang[] = ['ko', 'en'];
 
 const STORAGE_KEY = '1on1_compass_lang';
 
+/** VITE_LOCK_LANG=ko (or en) at build time fixes the language and hides the toggle. */
+const LOCKED: Lang | null = ((v) => (v === 'ko' || v === 'en' ? v : null))(import.meta.env.VITE_LOCK_LANG);
+export const isLangLocked = LOCKED !== null;
+
 /** Saved choice first, then the browser language (Korean browsers get Korean, everyone else English). */
 export function detectLang(): Lang {
+  if (LOCKED) return LOCKED;
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved === 'ko' || saved === 'en') return saved;
@@ -30,6 +35,7 @@ export const LangProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [lang, setLangState] = useState<Lang>(detectLang);
 
   const setLang = useCallback((next: Lang) => {
+    if (LOCKED) return;
     setLangState(next);
     try {
       localStorage.setItem(STORAGE_KEY, next);

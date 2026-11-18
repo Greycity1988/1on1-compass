@@ -1,8 +1,9 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { DiscSubmissionResult, LeaderConfig, TeamMember } from './types';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { DiscSubmissionResult, InterviewCycle, LeaderConfig, SurveyQuestion, TeamMember } from './types';
 import {
   deleteLocalMember,
   findMemberByToken,
+  generateSecureToken,
   getLeaderConfig,
   getTeamMembers,
   INITIAL_LEADER_CONFIG,
@@ -16,10 +17,13 @@ import {
 } from './utils/storage';
 import { ApiError, Backend, cloud, describeError, detectBackend, leaderSession } from './utils/api';
 import { useLang } from './i18n/lang';
+import { cycleOf, cyclesOf, newCycleId, personOf, sortCycles } from './utils/cycles';
 import { LeaderGate, LoginResult } from './components/LeaderGate';
 import { LeaderDashboard } from './components/LeaderDashboard';
 import { MemberSubmitView } from './components/MemberSubmitView';
 import { AlertCircle, Loader2, X } from 'lucide-react';
+
+const CYCLE_KEY = '1on1_compass_cycle';
 
 const FullScreen: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div className="min-h-screen bg-slate-50 dark:bg-[#0f1013] flex items-center justify-center p-4">{children}</div>
@@ -45,12 +49,38 @@ export const App: React.FC = () => {
   const [tokenMember, setTokenMember] = useState<TeamMember | null | undefined>(undefined);
   const [previewMember, setPreviewMember] = useState<TeamMember | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  // The round a member's link belongs to (server mode); null when rounds were never saved.
+  const [tokenCycle, setTokenCycle] = useState<InterviewCycle | null>(null);
+  const [selectedCycleId, setSelectedCycleId] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem(CYCLE_KEY);
+    } catch {
+      return null;
+    }
+  });
 
   const isCloud = backend?.mode === 'cloud';
-  // Until the leader saves their own questions, show the defaults in the viewer's language.
-  const viewConfig: LeaderConfig = config.surveyQuestions.length
-    ? config
-    : { ...config, surveyQuestions: defaultQuestions(lang) };
+  const cycles = cyclesOf(config, lang);
+  const currentCycle = cycles.find((c) => c.id === selectedCycleId) ?? sortCycles(cycles)[0];
+  const cycleById = (id: string) => cycles.find((c) => c.id === id);
+
+  /** A round's questions; empty means the defaults in the viewer's language. */
+  const questionsFor = (cycle: InterviewCycle | null | undefined): SurveyQuestion[] =>
+    cycle?.surveyQuestions.length
+      ? cycle.surveyQuestions
+      : config.surveyQuestions.length
+        ? config.surveyQuestions
+        : defaultQuestions(lang);
+  const viewConfig: LeaderConfig = { ...config, surveyQuestions: questionsFor(currentCycle) };
+
+  const selectCycle = (id: string) => {
+    setSelectedCycleId(id);
+    try {
+      localStorage.setItem(CYCLE_KEY, id);
+    } catch {
+      // storage unavailable
+    }
+  };
 
   useEffect(() => {
     detectBackend().then((b) => {
@@ -93,7 +123,10 @@ export const App: React.FC = () => {
     }
     cloud
       .getMemberByToken(urlToken)
-      .then(setTokenMember)
+      .then(({ member, cycle }) => {
+        setTokenCycle(cycle);
+        setTokenMember(member);
+      })
       .catch((err) => {
         if (!(err instanceof ApiError && err.status === 404)) setNotice(describeError(err, t));
         setTokenMember(null);
@@ -144,10 +177,31 @@ export const App: React.FC = () => {
       saveLeaderConfig(next);
       return;
     }
-    const { leaderName, teamTitle, surveyQuestions } = next;
-    cloud.saveConfig({ leaderName, teamTitle, surveyQuestions }).catch((err) => {
+    const { leaderName, teamTitle, surveyQuestions, cycles: nextCycles } = next;
+    cloud.saveConfig({ leaderName, teamTitle, surveyQuestions, cycles: nextCycles }).catch((err) => {
       setConfig(previous);
       report(err);
+    });
+  };
+
+  // Data from before rounds existed gets its first round saved once a leader is signed in, so
+  // the round's name stays fixed and member links can show it.
+  const savedInitialCycle = useRef(false);
+  useEffect(() => {
+    if (!backend || !isAuthed || config.cycles?.length || savedInitialCycle.current) return;
+    savedInitialCycle.current = true;
+    updateConfig({ ...config, cycles: cyclesOf(config, lang) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [backend, isAuthed, config]);
+
+  const updateCycles = (next: InterviewCycle[]) => updateConfig({ ...config, cycles: next });
+
+  /** Saves the current round's questions and the team details from the settings dialog. */
+  const saveSettings = (questions: SurveyQuestion[], team: { leaderName: string; teamTitle: string }) => {
+    updateConfig({
+      ...config,
+      ...team,
+      cycles: cycles.map((c) => (c.id === currentCycle.id ? { ...c, surveyQuestions: questions } : c)),
     });
   };
 
@@ -180,6 +234,44 @@ export const App: React.FC = () => {
     });
   };
 
+  /**
+   * Starts a new round, optionally bringing over the current round's members (with new links,
+   * linked to their earlier records) and its questions.
+   */
+  const createCycle = (name: string, copyMembers: boolean, copyQuestions: boolean) => {
+    const source = currentCycle;
+    const cycle: InterviewCycle = {
+      id: newCycleId(),
+      name,
+      createdAt: Date.now(),
+      surveyQuestions: copyQuestions ? questionsFor(source) : [],
+      closed: false,
+    };
+    updateCycles([...cycles, cycle]);
+    selectCycle(cycle.id);
+    if (!copyMembers) return;
+    members
+      .filter((m) => cycleOf(m) === source.id)
+      .forEach((m) =>
+        upsertMember({
+          id: `mem_${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}`,
+          token: generateSecureToken(),
+          personId: personOf(m),
+          cycleId: cycle.id,
+          name: m.name,
+          department: m.department,
+          role: m.role,
+          status: 'pending',
+          answers: {},
+          discResult: m.discResult,
+          interviewNotes: '',
+          actionItems: [],
+          evaluationGrade: '',
+          evaluationComment: '',
+        }),
+      );
+  };
+
   /** Saves a member's answers. Resolves to the saved member, or null (with a notice) on failure. */
   const submitAnswers = async (
     member: TeamMember,
@@ -187,6 +279,10 @@ export const App: React.FC = () => {
     discResult?: DiscSubmissionResult,
   ): Promise<TeamMember | null> => {
     if (backend?.mode === 'local') {
+      if (cycleById(cycleOf(member))?.closed) {
+        setNotice(t.member.cycleClosed);
+        return null;
+      }
       const saved: TeamMember = { ...member, answers, discResult, status: 'submitted', submittedAt: new Date().toISOString() };
       setMembers(upsertLocalMember(saved));
       return saved;
@@ -244,12 +340,15 @@ export const App: React.FC = () => {
         </FullScreen>
       );
     }
+    const memberCycle = backend.mode === 'cloud' ? tokenCycle : cycleById(cycleOf(tokenMember)) ?? null;
     return (
       <>
         {demoBar}
         <MemberSubmitView
           member={tokenMember}
-          leaderConfig={viewConfig}
+          leaderConfig={{ ...config, surveyQuestions: questionsFor(memberCycle) }}
+          cycleName={memberCycle?.name}
+          cycleClosed={Boolean(memberCycle?.closed)}
           onSubmit={async (answers, disc) => {
             const saved = await submitAnswers(tokenMember, answers, disc);
             if (saved) setTokenMember(saved);
@@ -276,7 +375,9 @@ export const App: React.FC = () => {
         {demoBar}
         <MemberSubmitView
           member={previewMember}
-          leaderConfig={viewConfig}
+          leaderConfig={{ ...config, surveyQuestions: questionsFor(cycleById(cycleOf(previewMember))) }}
+          cycleName={cycleById(cycleOf(previewMember))?.name}
+          cycleClosed={Boolean(cycleById(cycleOf(previewMember))?.closed)}
           onSubmit={async (answers, disc) => {
             const saved = await submitAnswers(previewMember, answers, disc);
             if (saved) setPreviewMember({ ...previewMember, ...saved });
@@ -309,8 +410,14 @@ export const App: React.FC = () => {
       {demoBar}
       <LeaderDashboard
         config={viewConfig}
-        members={members}
-        onUpdateConfig={updateConfig}
+        members={members.filter((m) => cycleOf(m) === currentCycle.id)}
+        allMembers={members}
+        cycles={cycles}
+        currentCycle={currentCycle}
+        onSelectCycle={selectCycle}
+        onCreateCycle={createCycle}
+        onUpdateCycle={(c) => updateCycles(cycles.map((x) => (x.id === c.id ? c : x)))}
+        onSaveSettings={saveSettings}
         onUpsertMember={upsertMember}
         onDeleteMember={deleteMember}
         onChangePin={changePin}

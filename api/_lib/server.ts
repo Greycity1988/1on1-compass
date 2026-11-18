@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Redis } from '@upstash/redis';
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
-import type { DiscSubmissionResult, SurveyQuestion, TeamMember } from '../../src/types/index.js';
+import type { DiscSubmissionResult, InterviewCycle, SurveyQuestion, TeamMember } from '../../src/types/index.js';
 
 /** The subset of the Upstash client the API uses (lets tests swap in an in-memory store). */
 export interface RedisLike {
@@ -197,14 +197,19 @@ const text = (v: unknown, max: number) => (typeof v === 'string' ? v.slice(0, ma
 const oneOf = <T extends string>(v: unknown, list: readonly T[], fallback: T): T =>
   list.includes(v as T) ? (v as T) : fallback;
 
+/** Records saved before interview rounds existed belong to this round (same id as the client). */
+export const INITIAL_CYCLE_ID = 'cycle-initial';
+
 export interface PublicConfig {
   leaderName: string;
   teamTitle: string;
+  /** Questions from before rounds existed (the first round's questions until it is saved). */
   surveyQuestions: SurveyQuestion[];
+  cycles?: InterviewCycle[];
 }
 
-export function sanitizeQuestions(v: unknown): SurveyQuestion[] | null {
-  if (!Array.isArray(v) || v.length < 1 || v.length > 30) return null;
+export function sanitizeQuestions(v: unknown, allowEmpty = false): SurveyQuestion[] | null {
+  if (!Array.isArray(v) || v.length < (allowEmpty ? 0 : 1) || v.length > 30) return null;
   const seen = new Set<string>();
   const out: SurveyQuestion[] = [];
   for (const q of v) {
@@ -224,12 +229,49 @@ export function sanitizeQuestions(v: unknown): SurveyQuestion[] | null {
   return out;
 }
 
+/** undefined = not given, null = invalid. */
+export function sanitizeCycles(v: unknown): InterviewCycle[] | undefined | null {
+  if (v === undefined) return undefined;
+  if (!Array.isArray(v) || v.length < 1 || v.length > 50) return null;
+  const seen = new Set<string>();
+  const out: InterviewCycle[] = [];
+  for (const raw of v) {
+    if (!raw || typeof raw !== 'object') return null;
+    const c = raw as Record<string, unknown>;
+    const name = text(c.name, 60).trim();
+    const questions = sanitizeQuestions(c.surveyQuestions ?? [], true);
+    if (typeof c.id !== 'string' || !ID_RE.test(c.id) || seen.has(c.id) || !name || !questions) return null;
+    seen.add(c.id);
+    out.push({
+      id: c.id,
+      name,
+      createdAt: typeof c.createdAt === 'number' && Number.isFinite(c.createdAt) ? c.createdAt : 0,
+      surveyQuestions: questions,
+      closed: c.closed === true,
+    });
+  }
+  return out;
+}
+
 export function sanitizeConfig(v: unknown): PublicConfig | null {
   if (!v || typeof v !== 'object') return null;
   const c = v as Record<string, unknown>;
-  const surveyQuestions = sanitizeQuestions(c.surveyQuestions);
-  if (!surveyQuestions) return null;
-  return { leaderName: text(c.leaderName, 60), teamTitle: text(c.teamTitle, 120), surveyQuestions };
+  const cycles = sanitizeCycles(c.cycles);
+  if (cycles === null) return null;
+  const legacy = c.surveyQuestions === undefined ? undefined : sanitizeQuestions(c.surveyQuestions, Boolean(cycles));
+  if (legacy === null || (!legacy && !cycles)) return null;
+  return {
+    leaderName: text(c.leaderName, 60),
+    teamTitle: text(c.teamTitle, 120),
+    surveyQuestions: legacy ?? [],
+    ...(cycles ? { cycles } : {}),
+  };
+}
+
+/** The round a member record belongs to, or null when rounds were never saved. */
+export async function cycleForMember(redis: RedisLike, m: TeamMember): Promise<InterviewCycle | null> {
+  const config = sanitizeConfig(await redis.get(KEYS.config));
+  return config?.cycles?.find((c) => c.id === (m.cycleId || INITIAL_CYCLE_ID)) ?? null;
 }
 
 export function sanitizeAnswers(v: unknown): Record<string, string> | null {
@@ -300,13 +342,15 @@ export function sanitizeMember(v: unknown): TeamMember | null {
     evaluationComment: text(m.evaluationComment, 5000),
     interviewDate: text(m.interviewDate, 40) || undefined,
     createdAt: typeof m.createdAt === 'number' ? m.createdAt : undefined,
+    cycleId: typeof m.cycleId === 'string' && ID_RE.test(m.cycleId) ? m.cycleId : undefined,
+    personId: typeof m.personId === 'string' && ID_RE.test(m.personId) ? m.personId : undefined,
   };
 }
 
 /** What a member's own link may see: never the leader's notes, grade or comments. */
 export function publicMember(m: TeamMember) {
-  const { id, token, name, department, role, status, answers, discResult, submittedAt } = m;
-  return { id, token, name, department, role, status, answers, discResult, submittedAt };
+  const { id, token, name, department, role, status, answers, discResult, submittedAt, cycleId } = m;
+  return { id, token, name, department, role, status, answers, discResult, submittedAt, cycleId };
 }
 
 // ---------------------------------------------------------------- member storage

@@ -32,6 +32,21 @@ export interface TeamMember {
   interviewDate?: string;
   /** Set by the server; used to list newest members first. */
   createdAt?: number;
+  /** Interview round this record belongs to; missing means the first round (INITIAL_CYCLE_ID). */
+  cycleId?: string;
+  /** Links one person's records across rounds; missing means the record's own id. */
+  personId?: string;
+}
+
+/** One interview round, e.g. "2026 year-end review". Each round keeps its own questions. */
+export interface InterviewCycle {
+  id: string;
+  name: string;
+  createdAt: number;
+  /** Empty means the default questions in the viewer's language. */
+  surveyQuestions: SurveyQuestion[];
+  /** Closed rounds no longer accept member submissions. */
+  closed: boolean;
 }
 
 export interface LeaderConfig {
@@ -39,7 +54,9 @@ export interface LeaderConfig {
   /** Only used in local demo mode (data kept in this browser). The server never sends it. */
   pin?: string;
   teamTitle: string;
+  /** Questions from before interview rounds existed; they become the first round's questions. */
   surveyQuestions: SurveyQuestion[];
+  cycles?: InterviewCycle[];
 }
 
 export interface AiInterviewGuide {

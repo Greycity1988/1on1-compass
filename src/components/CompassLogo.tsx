@@ -54,7 +54,7 @@ export const CompassLogo: React.FC<CompassLogoProps> = ({
               1on1 <span className="text-emerald-600 dark:text-[#A8FF1A]">Compass</span>
             </span>
             <span className="text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-[#A8FF1A] border border-emerald-300/40 dark:border-emerald-500/30">
-              AI Copilot
+              1:1 Copilot
             </span>
           </div>
           <span className="text-[11px] text-slate-500 dark:text-slate-400">

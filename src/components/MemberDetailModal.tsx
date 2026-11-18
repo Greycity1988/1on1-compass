@@ -10,13 +10,14 @@ import {
   Printer,
   ChevronRight,
   ShieldAlert,
+  History,
   ThumbsUp,
   AlertTriangle,
   Lightbulb,
   Plus,
   Trash2,
 } from 'lucide-react';
-import { AiInterviewGuide, TeamMember } from '../types';
+import { AiInterviewGuide, InterviewCycle, TeamMember } from '../types';
 import { getDisc, patternFor } from '../data/disc';
 import { useLang } from '../i18n/lang';
 import { formatDateTime } from '../utils/storage';
@@ -27,6 +28,8 @@ interface MemberDetailModalProps {
   member: TeamMember | null;
   onClose: () => void;
   onUpdateMember: (updated: TeamMember) => void;
+  /** The same person's records from other review rounds, newest first. */
+  history?: { member: TeamMember; cycle?: InterviewCycle }[];
 }
 
 export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
@@ -34,9 +37,10 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
   member,
   onClose,
   onUpdateMember,
+  history = [],
 }) => {
   const { lang, t } = useLang();
-  const [activeTab, setActiveTab] = useState<'copilot' | 'answers' | 'disc' | 'notes'>('copilot');
+  const [activeTab, setActiveTab] = useState<'copilot' | 'answers' | 'disc' | 'notes' | 'history'>('copilot');
   const [aiGuide, setAiGuide] = useState<AiInterviewGuide | null>(null);
   const [notes, setNotes] = useState('');
   const [grade, setGrade] = useState<'S' | 'A' | 'B' | 'C' | 'D' | ''>('');
@@ -275,6 +279,19 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
               </span>
             )}
           </button>
+          {history.length > 0 && (
+            <button
+              onClick={() => setActiveTab('history')}
+              className={`py-3 px-3 sm:px-4 border-b-2 flex items-center space-x-1.5 transition ${
+                activeTab === 'history'
+                  ? 'border-emerald-600 text-emerald-700 dark:border-[#A8FF1A] dark:text-[#A8FF1A]'
+                  : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'
+              }`}
+            >
+              <History className="w-4 h-4" />
+              <span>{t.detail.tabHistory(history.length)}</span>
+            </button>
+          )}
         </div>
 
         {/* Tab Body */}
@@ -776,6 +793,78 @@ export const MemberDetailModal: React.FC<MemberDetailModalProps> = ({
                   />
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Tab 5: the same person's earlier rounds */}
+          {activeTab === 'history' && (
+            <div className="space-y-4 animate-fade-in text-xs">
+              <p className="text-slate-500 dark:text-slate-400">{t.detail.historyIntro(member.name)}</p>
+              {history.map(({ member: past, cycle }) => {
+                const answers = Object.entries(past.answers || {}).filter(([, v]) => v.trim());
+                const actions = past.actionItems || [];
+                const empty = !answers.length && !past.interviewNotes && !actions.length && !past.evaluationComment;
+                const titleOf = (qid: string) => cycle?.surveyQuestions.find((q) => q.id === qid)?.title || qid.toUpperCase();
+                return (
+                  <section key={past.id} className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 space-y-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h4 className="text-sm font-bold text-slate-900 dark:text-white">{cycle?.name ?? '—'}</h4>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                        {t.status[past.status]}
+                      </span>
+                      {past.evaluationGrade && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full font-extrabold bg-slate-900 text-white dark:bg-white dark:text-slate-900">
+                          {t.detail.historyGrade} {past.evaluationGrade}
+                        </span>
+                      )}
+                      {past.submittedAt && (
+                        <span className="text-[10px] text-slate-400">{t.detail.submittedAt(formatDateTime(past.submittedAt, lang))}</span>
+                      )}
+                    </div>
+                    {empty && <p className="text-slate-400">{t.detail.historyNothing}</p>}
+                    {past.evaluationComment && (
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 mb-1">{t.detail.historyComment}</p>
+                        <p className="text-slate-700 dark:text-slate-200 whitespace-pre-wrap leading-relaxed">{past.evaluationComment}</p>
+                      </div>
+                    )}
+                    {actions.length > 0 && (
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 mb-1">{t.detail.historyActions}</p>
+                        <ul className="space-y-1">
+                          {actions.map((a) => (
+                            <li key={a.id} className="flex items-start gap-1.5 text-slate-700 dark:text-slate-200">
+                              <span className={a.done ? 'text-emerald-600' : 'text-slate-400'}>{a.done ? '✓' : '○'}</span>
+                              <span className={a.done ? 'line-through opacity-70' : ''}>{a.text}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {past.interviewNotes && (
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 mb-1">{t.detail.historyNotes}</p>
+                        <p className="text-slate-700 dark:text-slate-200 whitespace-pre-wrap leading-relaxed">{past.interviewNotes}</p>
+                      </div>
+                    )}
+                    {answers.length > 0 && (
+                      <details className="group">
+                        <summary className="cursor-pointer text-[11px] font-bold text-emerald-700 dark:text-[#A8FF1A]">
+                          {t.detail.historyAnswers} ({answers.length})
+                        </summary>
+                        <div className="mt-2 space-y-2">
+                          {answers.map(([qid, text]) => (
+                            <div key={qid} className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/40">
+                              <p className="text-[10px] font-bold text-slate-500 mb-0.5">{titleOf(qid)}</p>
+                              <p className="text-slate-700 dark:text-slate-200 whitespace-pre-wrap leading-relaxed">{text}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    )}
+                  </section>
+                );
+              })}
             </div>
           )}
         </div>

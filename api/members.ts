@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import type { TeamMember } from '../src/types/index.js';
 import {
   KEYS,
+  cycleForMember,
   fail,
   findMemberByToken,
   getRedis,
@@ -17,7 +18,7 @@ import {
 } from './_lib/server.js';
 
 /**
- * GET    ?token=...                      -> { member }   the member's own survey (public, by link)
+ * GET    ?token=...                      -> { member, cycle }  the member's own survey and its round (public, by link)
  * POST   { token, answers, discResult }  -> { member }   the member submits answers (public, by link)
  * GET                                    -> { members }  leader only
  * PUT    { member }                      -> { member }   leader adds or edits one member
@@ -33,7 +34,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const token = typeof req.query.token === 'string' ? req.query.token : '';
       if (token) {
         const member = await findMemberByToken(redis, token);
-        return member ? res.status(200).json({ member: publicMember(member) }) : fail(res, 404, 'not_found');
+        if (!member) return fail(res, 404, 'not_found');
+        return res.status(200).json({ member: publicMember(member), cycle: await cycleForMember(redis, member) });
       }
       if (!(await isLeader(req, redis))) return fail(res, 401, 'unauthorized');
       return res.status(200).json({ members: await loadMembers(redis) });
@@ -44,6 +46,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const member = typeof body.token === 'string' ? await findMemberByToken(redis, body.token) : null;
       if (!member) return fail(res, 404, 'not_found');
       if (member.status === 'interviewing' || member.status === 'completed') return fail(res, 409, 'locked');
+      if ((await cycleForMember(redis, member))?.closed) return fail(res, 409, 'locked');
       const answers = sanitizeAnswers(body.answers);
       const discResult = sanitizeDisc(body.discResult);
       if (answers === null || discResult === null) return fail(res, 400, 'invalid_answers');
@@ -76,6 +79,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           submittedAt: existing.submittedAt,
           status: incoming.status === 'pending' && existing.status !== 'pending' ? existing.status : incoming.status,
           createdAt: existing.createdAt ?? incoming.createdAt,
+          // A record stays in its round and keeps its person link.
+          cycleId: existing.cycleId ?? incoming.cycleId,
+          personId: existing.personId ?? incoming.personId,
         };
       } else {
         saved = { ...incoming, answers: {}, submittedAt: undefined, status: 'pending', createdAt: Date.now() };

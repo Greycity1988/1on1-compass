@@ -266,3 +266,46 @@ describe('demo mode', () => {
     }
   });
 });
+
+describe('interview rounds', () => {
+  const ROUNDS = [
+    { id: 'cycle-initial', name: '2026 year-end review', createdAt: 1, surveyQuestions: QUESTIONS, closed: false },
+    { id: 'cycle_b', name: '2027 H1 review', createdAt: 2, surveyQuestions: [], closed: false },
+  ];
+  let leader: string;
+  beforeEach(async () => {
+    process.env.LEADER_PIN = 'correct-horse';
+    leader = await login();
+    await call(configHandler, { method: 'PUT', token: leader, body: { config: { leaderName: 'L', teamTitle: 'T', surveyQuestions: QUESTIONS, cycles: ROUNDS } } });
+    await call(membersHandler, { method: 'PUT', token: leader, body: { member: member('m1', TOKEN_A) } }); // no cycleId: first round
+    await call(membersHandler, { method: 'PUT', token: leader, body: { member: member('m2', TOKEN_B, { cycleId: 'cycle_b', personId: 'm1' }) } });
+  });
+
+  it("a member link returns its own round's name and questions", async () => {
+    const a = (await call(membersHandler, { query: { token: TOKEN_A } })).body;
+    expect(a.cycle.name).toBe('2026 year-end review');
+    expect(a.cycle.surveyQuestions).toHaveLength(1);
+    const b = (await call(membersHandler, { query: { token: TOKEN_B } })).body;
+    expect(b.cycle.id).toBe('cycle_b');
+    expect(b.member.cycleId).toBe('cycle_b');
+  });
+
+  it('a closed round refuses submissions; others still accept them', async () => {
+    const closed = ROUNDS.map((c) => (c.id === 'cycle-initial' ? { ...c, closed: true } : c));
+    await call(configHandler, { method: 'PUT', token: leader, body: { config: { leaderName: 'L', teamTitle: 'T', surveyQuestions: QUESTIONS, cycles: closed } } });
+    expect((await call(membersHandler, { method: 'POST', body: { token: TOKEN_A, answers: { q1: 'x' } } })).status).toBe(409);
+    expect((await call(membersHandler, { method: 'POST', body: { token: TOKEN_B, answers: { q1: 'x' } } })).status).toBe(200);
+  });
+
+  it("keeps a record's round and person link when the leader edits it", async () => {
+    await call(membersHandler, { method: 'PUT', token: leader, body: { member: member('m2', TOKEN_B, { interviewNotes: 'n' }) } });
+    const m2 = (await call(membersHandler, { token: leader })).body.members.find((m: { id: string }) => m.id === 'm2');
+    expect(m2.cycleId).toBe('cycle_b');
+    expect(m2.personId).toBe('m1');
+  });
+
+  it('rejects invalid rounds', async () => {
+    const bad = await call(configHandler, { method: 'PUT', token: leader, body: { config: { surveyQuestions: QUESTIONS, cycles: [{ id: 'x', name: '' }] } } });
+    expect(bad.status).toBe(400);
+  });
+});

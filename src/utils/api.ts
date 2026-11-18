@@ -1,8 +1,8 @@
-import { DiscSubmissionResult, LeaderConfig, TeamMember } from '../types';
+import { DiscSubmissionResult, InterviewCycle, LeaderConfig, TeamMember } from '../types';
 import type { UiStrings } from '../i18n/ui';
 
 /** Team settings the server shares with everyone (never the password). */
-export type PublicConfig = Pick<LeaderConfig, 'leaderName' | 'teamTitle' | 'surveyQuestions'>;
+export type PublicConfig = Pick<LeaderConfig, 'leaderName' | 'teamTitle' | 'surveyQuestions' | 'cycles'>;
 
 export type Backend =
   | { mode: 'cloud'; setupRequired: boolean; config: PublicConfig | null }
@@ -73,8 +73,9 @@ export const cloud = {
     leaderSession.set(token);
   },
   listMembers: () => call<{ members: TeamMember[] }>('/api/members', {}, true).then((d) => d.members),
+  /** The member behind a private link, with its round (null when rounds were never saved). */
   getMemberByToken: (token: string) =>
-    call<{ member: TeamMember }>(`/api/members?token=${encodeURIComponent(token)}`).then((d) => d.member),
+    call<{ member: TeamMember; cycle: InterviewCycle | null }>(`/api/members?token=${encodeURIComponent(token)}`),
   submitAnswers: (token: string, answers: Record<string, string>, discResult?: DiscSubmissionResult) =>
     call<{ member: TeamMember }>('/api/members', { method: 'POST', body: json({ token, answers, discResult }) }).then(
       (d) => d.member,

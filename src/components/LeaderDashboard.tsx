@@ -13,8 +13,10 @@ import {
   Brain,
   Trash2,
   KeyRound,
+  CalendarPlus,
+  Settings2,
 } from 'lucide-react';
-import { LeaderConfig, SurveyQuestion, TeamMember } from '../types';
+import { InterviewCycle, LeaderConfig, SurveyQuestion, TeamMember } from '../types';
 import { CompassLogo } from './CompassLogo';
 import { SuiteFooter } from './SuiteFooter';
 import { AddMemberModal } from './AddMemberModal';
@@ -27,11 +29,22 @@ import { ChangePinModal } from './ChangePinModal';
 import { LangToggle } from './LangToggle';
 import { useLang } from '../i18n/lang';
 import { discLabel } from '../data/disc';
+import { CycleModal } from './CycleModal';
+import { cycleOf, personOf, sortCycles, suggestCycleName } from '../utils/cycles';
 
 interface LeaderDashboardProps {
   config: LeaderConfig;
+  /** Members of the selected round. */
   members: TeamMember[];
-  onUpdateConfig: (config: LeaderConfig) => void;
+  /** Members of every round (for past records and per-round counts). */
+  allMembers: TeamMember[];
+  cycles: InterviewCycle[];
+  currentCycle: InterviewCycle;
+  onSelectCycle: (id: string) => void;
+  onCreateCycle: (name: string, copyMembers: boolean, copyQuestions: boolean) => void;
+  onUpdateCycle: (cycle: InterviewCycle) => void;
+  /** Saves the selected round's questions and the team details. */
+  onSaveSettings: (questions: SurveyQuestion[], team: { leaderName: string; teamTitle: string }) => void;
   onUpsertMember: (member: TeamMember) => void;
   onDeleteMember: (id: string) => void;
   onChangePin: (current: string, next: string) => Promise<string | null>;
@@ -44,7 +57,13 @@ interface LeaderDashboardProps {
 export const LeaderDashboard: React.FC<LeaderDashboardProps> = ({
   config,
   members,
-  onUpdateConfig,
+  allMembers,
+  cycles,
+  currentCycle,
+  onSelectCycle,
+  onCreateCycle,
+  onUpdateCycle,
+  onSaveSettings,
   onUpsertMember,
   onDeleteMember,
   onChangePin,
@@ -63,6 +82,8 @@ export const LeaderDashboard: React.FC<LeaderDashboardProps> = ({
   const [isDonationOpen, setIsDonationOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [cycleModal, setCycleModal] = useState<'create' | 'edit' | null>(null);
+  const countIn = (cycleId: string) => allMembers.filter((m) => cycleOf(m) === cycleId).length;
 
   // Filter members
   const filteredMembers = members.filter((m) => {
@@ -83,7 +104,7 @@ export const LeaderDashboard: React.FC<LeaderDashboardProps> = ({
   const completedCount = members.filter((m) => m.status === 'completed').length;
 
   const handleAddMember = (newMem: TeamMember) => {
-    onUpsertMember(newMem);
+    onUpsertMember({ ...newMem, cycleId: currentCycle.id, personId: newMem.id });
   };
 
   const handleUpdateSingleMember = (updated: TeamMember) => {
@@ -101,11 +122,7 @@ export const LeaderDashboard: React.FC<LeaderDashboardProps> = ({
   };
 
   const handleSaveQuestions = (questions: SurveyQuestion[], team: { leaderName: string; teamTitle: string }) => {
-    onUpdateConfig({
-      ...config,
-      ...team,
-      surveyQuestions: questions,
-    });
+    onSaveSettings(questions, team);
   };
 
   const handleCopyLink = (token: string, memberId: string) => {
@@ -208,6 +225,46 @@ export const LeaderDashboard: React.FC<LeaderDashboardProps> = ({
               <strong>{t.dashboard.heroStrong}</strong>
               {t.dashboard.heroBody2}
             </p>
+
+            {/* Review round */}
+            <div className="flex flex-wrap items-center gap-2 mt-4">
+              <label htmlFor="cycle-select" className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                {t.cycles.label}
+              </label>
+              <select
+                id="cycle-select"
+                value={currentCycle.id}
+                onChange={(e) => onSelectCycle(e.target.value)}
+                className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              >
+                {sortCycles(cycles).map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                    {c.closed ? ` (${t.cycles.closedTag})` : ''} · {t.cycles.count(countIn(c.id))}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => setCycleModal('create')}
+                className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition inline-flex items-center gap-1"
+              >
+                <CalendarPlus className="w-3.5 h-3.5 text-emerald-600 dark:text-[#A8FF1A]" />
+                <span>{t.cycles.newCycle}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setCycleModal('edit')}
+                title={t.cycles.settings}
+                aria-label={t.cycles.settings}
+                className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+              >
+                <Settings2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            {currentCycle.closed && (
+              <p className="mt-2 text-[11px] font-semibold text-amber-700 dark:text-amber-400">{t.cycles.closedBanner}</p>
+            )}
           </div>
 
           <button
@@ -495,8 +552,27 @@ export const LeaderDashboard: React.FC<LeaderDashboardProps> = ({
       <MemberDetailModal
         isOpen={Boolean(selectedMember)}
         member={selectedMember}
+        history={
+          selectedMember
+            ? allMembers
+                .filter((m) => m.id !== selectedMember.id && personOf(m) === personOf(selectedMember))
+                .map((m) => ({ member: m, cycle: cycles.find((c) => c.id === cycleOf(m)) }))
+                .sort((a, b) => (b.cycle?.createdAt ?? 0) - (a.cycle?.createdAt ?? 0))
+            : []
+        }
         onClose={() => setSelectedMember(null)}
         onUpdateMember={handleUpdateSingleMember}
+      />
+
+      <CycleModal
+        isOpen={cycleModal !== null}
+        mode={cycleModal ?? 'create'}
+        cycle={currentCycle}
+        suggestedName={suggestCycleName(lang, new Date(), cycles.map((c) => c.name))}
+        memberCount={members.length}
+        onClose={() => setCycleModal(null)}
+        onCreate={onCreateCycle}
+        onSave={onUpdateCycle}
       />
 
       <FeedbackModal
