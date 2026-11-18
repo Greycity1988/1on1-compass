@@ -35,6 +35,8 @@ interface LeaderDashboardProps {
   onUpsertMember: (member: TeamMember) => void;
   onDeleteMember: (id: string) => void;
   onChangePin: (current: string, next: string) => Promise<string | null>;
+  /** Local demo mode: the password stays the demo password. */
+  isDemo?: boolean;
   onLogout: () => void;
   onPreviewMember: (member: TeamMember) => void;
 }
@@ -46,6 +48,7 @@ export const LeaderDashboard: React.FC<LeaderDashboardProps> = ({
   onUpsertMember,
   onDeleteMember,
   onChangePin,
+  isDemo = false,
   onLogout,
   onPreviewMember,
 }) => {
@@ -478,6 +481,7 @@ export const LeaderDashboard: React.FC<LeaderDashboardProps> = ({
         isOpen={isChangePinOpen}
         onClose={() => setIsChangePinOpen(false)}
         onChangePin={onChangePin}
+        isDemo={isDemo}
       />
 
       <DiscTestModal

@@ -36,7 +36,7 @@ npm run dev            # http://localhost:5177
 ```
 
 Without a server and database the app runs in **local demo mode**:
-- Data stays in that browser and the demo password is `1234`.
+- Data stays in that browser and the demo password is always `1234` (it can't be changed in demo mode).
 - Sample members are included.
 - Member links work only in the same browser.
 

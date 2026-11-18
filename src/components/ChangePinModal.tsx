@@ -7,6 +7,8 @@ interface ChangePinModalProps {
   onClose: () => void;
   /** Resolves to an error message, or null when the password was changed. */
   onChangePin: (current: string, next: string) => Promise<string | null>;
+  /** Demo mode: explain that the password can't be changed instead of showing the form. */
+  isDemo?: boolean;
 }
 
 const MIN_LENGTH = 8;
@@ -15,6 +17,7 @@ export const ChangePinModal: React.FC<ChangePinModalProps> = ({
   isOpen,
   onClose,
   onChangePin,
+  isDemo = false,
 }) => {
   const { t } = useLang();
   const [currentPin, setCurrentPin] = useState('');
@@ -76,7 +79,20 @@ export const ChangePinModal: React.FC<ChangePinModalProps> = ({
           <X className="w-5 h-5" />
         </button>
 
-        {success ? (
+        {isDemo ? (
+          <div className="py-6 text-center space-y-3">
+            <KeyRound className="w-10 h-10 text-slate-400 mx-auto" />
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">{t.pin.demoDisabledTitle}</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{t.pin.demoDisabledBody}</p>
+            <button
+              type="button"
+              onClick={handleClose}
+              className="mt-2 px-4 py-2 text-xs font-bold rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900"
+            >
+              {t.common.close}
+            </button>
+          </div>
+        ) : success ? (
           <div className="py-8 text-center space-y-3">
             <ShieldCheck className="w-12 h-12 text-emerald-500 mx-auto" />
             <h3 className="text-base font-bold text-slate-900 dark:text-white">

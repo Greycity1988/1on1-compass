@@ -6,6 +6,7 @@ import {
   getLeaderConfig,
   getTeamMembers,
   INITIAL_LEADER_CONFIG,
+  LOCAL_DEMO_PIN,
   isLeaderAuthenticated,
   defaultQuestions,
   saveLeaderConfig,
@@ -107,7 +108,8 @@ export const App: React.FC = () => {
 
   const login = async (pin: string): Promise<LoginResult> => {
     if (backend?.mode === 'local') {
-      if (pin !== (config.pin ?? INITIAL_LEADER_CONFIG.pin)) return { ok: false, message: t.errors.wrongPin };
+      // Demo mode always uses the demo password, so nobody can lock a shared browser out.
+      if (pin !== LOCAL_DEMO_PIN) return { ok: false, message: t.errors.wrongPin };
       setLeaderAuthenticated(true);
       setIsAuthed(true);
       return { ok: true };
@@ -123,11 +125,8 @@ export const App: React.FC = () => {
 
   const changePin = async (current: string, next: string): Promise<string | null> => {
     if (backend?.mode === 'local') {
-      if (current !== (config.pin ?? INITIAL_LEADER_CONFIG.pin)) return t.errors.wrongCurrentPin;
-      const updated = { ...config, pin: next };
-      setConfig(updated);
-      saveLeaderConfig(updated);
-      return null;
+      // The password can't be changed in demo mode (the dialog explains this; this is a backstop).
+      return t.pin.demoDisabledBody;
     }
     try {
       await cloud.changePin(current, next);
@@ -297,7 +296,7 @@ export const App: React.FC = () => {
         {demoBar}
         <LeaderGate
           onLogin={login}
-          demoPin={backend.mode === 'local' && (config.pin ?? INITIAL_LEADER_CONFIG.pin) === INITIAL_LEADER_CONFIG.pin ? INITIAL_LEADER_CONFIG.pin : undefined}
+          demoPin={backend.mode === 'local' ? LOCAL_DEMO_PIN : undefined}
           setupRequired={isCloud && backend.mode === 'cloud' && backend.setupRequired}
         />
       </>
@@ -315,6 +314,7 @@ export const App: React.FC = () => {
         onUpsertMember={upsertMember}
         onDeleteMember={deleteMember}
         onChangePin={changePin}
+        isDemo={backend.mode === 'local'}
         onLogout={logout}
         onPreviewMember={(m) => setPreviewMember(m)}
       />

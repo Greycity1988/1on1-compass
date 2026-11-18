@@ -61,6 +61,8 @@ const ko = {
     confirm: '새 비밀번호 확인',
     confirmPlaceholder: '새 비밀번호 다시 입력',
     save: '비밀번호 저장',
+    demoDisabledTitle: '데모에서는 비밀번호를 바꿀 수 없습니다',
+    demoDisabledBody: '데모 비밀번호는 모든 방문자에게 1234로 유지됩니다. 직접 배포하면 비밀번호를 바꿀 수 있습니다(README 참고).',
   },
   donation: {
     aria: '커피 후원',
@@ -349,6 +351,8 @@ const en: UiStrings = {
     confirm: 'Confirm new password',
     confirmPlaceholder: 'Enter the new password again',
     save: 'Save password',
+    demoDisabledTitle: "The password can't be changed in the demo",
+    demoDisabledBody: 'The demo password stays 1234 for every visitor. Deploy your own copy to set your own password (see the README).',
   },
   donation: {
     aria: 'Buy me a coffee',
