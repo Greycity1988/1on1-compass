@@ -62,4 +62,8 @@ npm run build
 
 아이디어와 버그는 [Issues](../../issues)에 남겨 주세요. 이슈는 누구나 볼 수 있으니 실제 구성원 이름이나 면담 내용은 적지 마세요.
 
+## 라이선스
+
+[MIT](LICENSE) 라이선스입니다. 상업적 용도를 포함해 자유롭게 쓰고, 고치고, 배포할 수 있습니다.
+
 Marketing Intelligence Suite의 일부이며, Owen O. Magnus가 만들었습니다.

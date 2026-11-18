@@ -83,4 +83,8 @@ tests/             API tests
 
 Ideas and bug reports are welcome in [Issues](../../issues). Please don't post real member names or interview content there: issues are public.
 
+## License
+
+[MIT](LICENSE). Use, modify and share it freely, including commercially.
+
 Part of the Marketing Intelligence Suite, made by Owen O. Magnus.
