@@ -4,7 +4,9 @@
 
 [English →](README.md)
 
-**[데모 바로 써 보기 →](https://1on1-compass-demo.vercel.app/)** (데모 비밀번호 `1234`, 데이터는 내 브라우저에만 저장)
+**[데모 바로 써 보기 →](https://1on1-compass-demo.vercel.app/)** (데모 비밀번호 `1234`, 데이터는 내 브라우저에만 저장) &nbsp; [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FGreycity1988%2F1on1-compass&project-name=1on1-compass&env=LEADER_PIN&envDescription=First+leader+password+%288%2B+characters%29.+Connect+Upstash+Redis+under+Storage+after+deploying.&envLink=https%3A%2F%2Fgithub.com%2FGreycity1988%2F1on1-compass%23deploy-your-own-vercel--upstash-redis)
+
+![1on1 Compass 대시보드, 면담 가이드, 구성원 설문](docs/images/demo-ko.gif)
 
 > 한국어와 영어를 지원합니다. 브라우저 언어에 맞춰 열리고, 화면 위 버튼으로 바꿀 수 있습니다.
 
@@ -15,6 +17,12 @@
 - **DISC 자가진단:** 15문항 진단을 하거나 유형을 직접 고릅니다.
 - **면담 가이드:** 답변과 DISC 유형에 맞춰 도입 멘트, 추가 질문, 코칭 질문, 주의할 점을 만듭니다. 브라우저 안의 규칙으로 만들기 때문에 답변을 AI 서비스로 보내지 않습니다.
 - **면담 기록:** 메모, 실행 항목, 등급, 코멘트는 리더만 보고, 구성원 링크에는 나오지 않습니다.
+
+## 화면
+
+| 리더 대시보드 | DISC 맞춤 면담 가이드 | 구성원 개인 설문 |
+|---|---|---|
+| ![리더 대시보드](docs/images/dashboard-ko.png) | ![면담 가이드](docs/images/guide-ko.png) | ![구성원 설문](docs/images/survey-ko.png) |
 
 ## 데이터 보호
 
