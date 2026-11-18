@@ -1,4 +1,5 @@
-// DISC Behavioral Type Data extracted from DISC_행동유형검사.html
+// DISC content in Korean. The English version with the same shape is in discData.en.ts;
+// components read either one through getDisc(lang) in disc.ts.
 
 export interface DiscQuestion {
   q: string;
@@ -166,53 +167,3 @@ export const COMBINATION_PATTERNS: Record<string, DiscPattern> = {
   'C/S/D':{n:'국난극복형',s:'어려운 상황일수록 차분하게 원인을 분석하고 끝까지 버텨 해결해 냅니다. 위기에서 신뢰받는 해결사입니다.',k:['위기 대응','인내','문제 해결'],w:'혼자 해결하려다 도움 요청이 늦어질 수 있습니다.',t:'문제 상황을 투명하게 공유하고, 필요한 자원을 먼저 물어봐 주세요.'},
   'C/S/I':{n:'교수형',s:'깊이 있는 지식을 차근차근 정리해 다른 사람에게 가르칩니다. 정확한 정보와 친절한 설명으로 신뢰를 얻습니다.',k:['지식','체계적 설명','인내'],w:'설명이 길고 상세해 핵심이 늦게 전달될 수 있습니다.',t:'교육·가이드 역할을 맡기고, 핵심 요약을 먼저 요청하세요.'}
 };
-
-/**
- * Calculates raw DISC scores from ranked responses.
- * Each answer array contains the indices 0..3 ranked from 1st (most like me: 4 pts) to 4th (least like me: 1 pt).
- */
-export function calculateDiscScores(answers: number[][]): Record<'D' | 'I' | 'S' | 'C', number> {
-  const scores: Record<'D' | 'I' | 'S' | 'C', number> = { D: 0, I: 0, S: 0, C: 0 };
-  answers.forEach((ans) => {
-    ans.forEach((choiceIdx, rank) => {
-      const factor = DISC_ORDER[choiceIdx];
-      scores[factor] += 4 - rank;
-    });
-  });
-  return scores;
-}
-
-/**
- * Identifies the high DISC pattern (code e.g. 'D', 'D/I', 'S/C') from raw scores.
- */
-export function determineDiscType(scores: Record<'D' | 'I' | 'S' | 'C', number>) {
-  const ranked = (['D', 'I', 'S', 'C'] as const).slice().sort((a, b) => {
-    const diff = scores[b] - scores[a];
-    if (diff !== 0) return diff;
-    return DISC_ORDER.indexOf(a) - DISC_ORDER.indexOf(b);
-  });
-
-  let hi = ranked.filter((factor) => scores[factor] > DISC_AVG_SCORE).slice(0, 3);
-  if (!hi.length) {
-    hi = [ranked[0]];
-  }
-
-  const code = hi.join('/');
-  const pattern = COMBINATION_PATTERNS[code] || {
-    n: `${hi[0]}형 (복합)`,
-    s: PRIMARY_FACTORS[hi[0]].tag,
-    k: PRIMARY_FACTORS[hi[0]].kw,
-    w: '상황에 따라 서로 다른 성향이 교차하여 나타날 수 있습니다.',
-    t: '주요 요인의 강점을 살리되, 업무 상황에 맞춘 커뮤니케이션 방식을 확인하세요.',
-  };
-
-  return {
-    code,
-    primary: hi[0],
-    hi,
-    ranked,
-    scores,
-    pattern,
-    primaryFactor: PRIMARY_FACTORS[hi[0]],
-  };
-}

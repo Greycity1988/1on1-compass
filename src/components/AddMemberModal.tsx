@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { X, UserPlus, Copy, Check, Sparkles } from 'lucide-react';
 import { TeamMember } from '../types';
-import { PRIMARY_FACTORS } from '../data/discData';
+import { getDisc } from '../data/disc';
+import { useLang } from '../i18n/lang';
 import { generateSecureToken } from '../utils/storage';
 
 interface AddMemberModalProps {
@@ -15,9 +16,10 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
   onClose,
   onAdd,
 }) => {
+  const { lang, t } = useLang();
   const [name, setName] = useState('');
   const [department, setDepartment] = useState('');
-  const [role, setRole] = useState('퍼포먼스 마케터');
+  const [role, setRole] = useState('');
   const [presetDisc, setPresetDisc] = useState<string>('none');
   const [createdMember, setCreatedMember] = useState<TeamMember | null>(null);
   const [copied, setCopied] = useState(false);
@@ -36,7 +38,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
       discResult = {
         primary: presetDisc as 'D' | 'I' | 'S' | 'C',
         code: presetDisc,
-        patternName: PRIMARY_FACTORS[presetDisc as 'D' | 'I' | 'S' | 'C'].name,
+        patternName: getDisc(lang).factors[presetDisc as 'D' | 'I' | 'S' | 'C'].name,
         source: 'manual' as const,
       };
     }
@@ -94,16 +96,16 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
 
             <div className="text-center">
               <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                {createdMember.name} 님의 전용 링크가 생성되었습니다!
+                {t.addMember.createdTitle(createdMember.name)}
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                이 링크를 구성원에게 전달하면, 본인 전용 서베이 화면에서 비공개로 답변을 작성하게 됩니다.
+                {t.addMember.createdBody}
               </p>
             </div>
 
             <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2">
               <span className="text-[11px] font-semibold text-slate-500 block">
-                전용 프라이빗 접속 URL
+                {t.addMember.urlLabel}
               </span>
               <div className="flex items-center space-x-2">
                 <input
@@ -118,7 +120,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
                   className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center space-x-1 flex-shrink-0 transition"
                 >
                   {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copied ? '복사됨' : '복사'}</span>
+                  <span>{copied ? t.common.copied : t.common.copy}</span>
                 </button>
               </div>
             </div>
@@ -129,7 +131,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
                 onClick={handleCloseAndReset}
                 className="w-full py-2.5 text-xs font-bold rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-900 transition"
               >
-                확인 및 대시보드로 돌아가기
+                {t.addMember.backToDashboard}
               </button>
             </div>
           </div>
@@ -138,24 +140,24 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
             <div>
               <div className="flex items-center space-x-2">
                 <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-[#A8FF1A]">
-                  팀원 등록
+                  {t.addMember.eyebrow}
                 </span>
               </div>
               <h3 className="text-base font-bold text-slate-900 dark:text-white mt-0.5">
-                면담 대상 구성원 추가 &amp; 전용 링크 발급
+                {t.addMember.title}
               </h3>
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                구성원 이름 <span className="text-emerald-500">*</span>
+                {t.addMember.name} <span className="text-emerald-500">*</span>
               </label>
               <input
                 required
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="예: 홍길동"
+                placeholder={t.addMember.namePlaceholder}
                 className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
@@ -163,26 +165,26 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  소속 부서/팀
+                  {t.addMember.department}
                 </label>
                 <input
                   type="text"
                   value={department}
                   onChange={(e) => setDepartment(e.target.value)}
-                  placeholder="예: 마케팅팀"
+                  placeholder={t.addMember.departmentPlaceholder}
                   className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  직무 / 직급
+                  {t.addMember.role}
                 </label>
                 <input
                   type="text"
                   value={role}
                   onChange={(e) => setRole(e.target.value)}
-                  placeholder="예: 퍼포먼스 마케터 (선임)"
+                  placeholder={t.addMember.rolePlaceholder}
                   className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
@@ -190,21 +192,22 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                DISC 행동유형 사전 지정 (선택)
+                {t.addMember.discPreset}
               </label>
               <select
                 value={presetDisc}
                 onChange={(e) => setPresetDisc(e.target.value)}
                 className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
               >
-                <option value="none">비워두기 (구성원이 직접 진단/선택하도록 함)</option>
-                <option value="D">D - 주도형 (Dominance · 결과와 도전 중심)</option>
-                <option value="I">I - 사교형 (Influence · 열정과 사람 중심)</option>
-                <option value="S">S - 안정형 (Steadiness · 꾸준함과 신뢰 중심)</option>
-                <option value="C">C - 신중형 (Conscientiousness · 분석과 정확성 중심)</option>
+                <option value="none">{t.addMember.discNone}</option>
+                {(['D', 'I', 'S', 'C'] as const).map((k) => (
+                  <option key={k} value={k}>
+                    {k} - {getDisc(lang).factors[k].name} ({getDisc(lang).factors[k].eng} · {t.addMember.discOption[k]})
+                  </option>
+                ))}
               </select>
               <p className="text-[11px] text-slate-400 mt-1">
-                이미 팀원의 DISC 성향을 알고 계신 경우 미리 설정해 두시면 편리합니다.
+                {t.addMember.discHint}
               </p>
             </div>
 
@@ -214,14 +217,14 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
                 onClick={handleCloseAndReset}
                 className="px-4 py-2 text-xs font-medium rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
               >
-                취소
+                {t.common.cancel}
               </button>
               <button
                 type="submit"
                 className="px-4 py-2 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white flex items-center space-x-1.5 transition shadow-sm"
               >
                 <UserPlus className="w-3.5 h-3.5" />
-                <span>등록 및 전용 링크 생성</span>
+                <span>{t.addMember.submit}</span>
               </button>
             </div>
           </form>

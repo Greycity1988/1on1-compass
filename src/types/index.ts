@@ -10,7 +10,7 @@ export interface SurveyQuestion {
 export interface DiscSubmissionResult {
   primary: 'D' | 'I' | 'S' | 'C';
   code: string; // e.g. 'D', 'D/I', 'S/C'
-  patternName: string; // e.g. '감독자형', '관리자형'
+  patternName: string; // name in the language used when it was saved; display via discLabel()
   scores?: Record<'D' | 'I' | 'S' | 'C', number>;
   source: 'manual' | 'test';
 }

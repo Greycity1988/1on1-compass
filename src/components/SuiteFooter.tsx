@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLang } from '../i18n/lang';
 
 interface SuiteFooterProps {
   appName: string;
@@ -20,7 +21,9 @@ export const SuiteFooter: React.FC<SuiteFooterProps> = ({
   onOpenFeedback,
   onEmblemClick,
   emblemTitle,
-}) => (
+}) => {
+  const { t } = useLang();
+  return (
   <footer className="mt-auto border-t border-slate-200 bg-white dark:border-[#26272c] dark:bg-[#141416] py-10 px-4 text-center text-xs text-slate-500 dark:text-[#AEAEAE] space-y-3 flex flex-col items-center justify-center transition-colors">
     {onEmblemClick ? (
       <button
@@ -48,7 +51,7 @@ export const SuiteFooter: React.FC<SuiteFooterProps> = ({
           type="button"
           onClick={onOpenFeedback}
           className="font-semibold text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white underline decoration-slate-300 dark:decoration-slate-600 underline-offset-2 transition cursor-pointer"
-          title="새로운 기능 제안 및 건의사항 남기기"
+          title={t.footer.feedbackTitle}
         >
           Feedbacks &amp; feature ideas
         </button>
@@ -62,7 +65,7 @@ export const SuiteFooter: React.FC<SuiteFooterProps> = ({
         type="button"
         onClick={onOpenDonation}
         className="text-emerald-700 hover:text-emerald-800 dark:text-[#A8FF1A] dark:hover:text-[#b8ff33] font-bold underline decoration-emerald-500/30 dark:decoration-[#A8FF1A]/30 cursor-pointer inline-flex items-center space-x-1"
-        title="개발자에게 커피 한 잔 선물하기"
+        title={t.footer.donationTitle}
       >
         <span>coffee sponsorships</span>
         <span>☕✨</span>
@@ -74,3 +77,4 @@ export const SuiteFooter: React.FC<SuiteFooterProps> = ({
     </p>
   </footer>
 );
+};

@@ -2,7 +2,7 @@
 
 A pre-1:1 survey and interview copilot for team leads. Send each team member a private link, collect their reflections and DISC profile before the meeting, and get a conversation guide tailored to how that person communicates.
 
-> The interface is currently in Korean. English is planned. [한국어 안내 →](README.ko.md)
+> Available in English and Korean: the app follows the browser language, and a toggle switches it. [한국어 안내 →](README.ko.md)
 
 ## What it does
 

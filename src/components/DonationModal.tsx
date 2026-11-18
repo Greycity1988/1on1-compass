@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, Coffee, Heart, ExternalLink } from 'lucide-react';
 import { DONATION_URL } from '../constants/links';
+import { useLang } from '../i18n/lang';
 
 interface DonationModalProps {
   isOpen: boolean;
@@ -8,14 +9,15 @@ interface DonationModalProps {
 }
 
 export const DonationModal: React.FC<DonationModalProps> = ({ isOpen, onClose }) => {
+  const { t } = useLang();
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-      <div role="dialog" aria-modal="true" aria-label="커피 후원" className="relative w-full max-w-sm rounded-2xl bg-white dark:bg-[#18191d] border border-slate-200 dark:border-slate-800 shadow-2xl p-6 text-center">
+      <div role="dialog" aria-modal="true" aria-label={t.donation.aria} className="relative w-full max-w-sm rounded-2xl bg-white dark:bg-[#18191d] border border-slate-200 dark:border-slate-800 shadow-2xl p-6 text-center">
         <button
           onClick={onClose}
-          aria-label="닫기"
+          aria-label={t.common.close}
           className="absolute top-5 right-5 p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition"
         >
           <X className="w-5 h-5" />
@@ -26,11 +28,10 @@ export const DonationModal: React.FC<DonationModalProps> = ({ isOpen, onClose })
         </div>
 
         <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-          개발자에게 커피 한 잔 선물하기 ☕
+          {t.donation.title}
         </h3>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
-          1on1 Compass는 1인 인디 크리에이터가 정성껏 만들고 있습니다. 
-          따뜻한 커피 후원은 서버 운영과 기능 개발에 큰 힘이 됩니다!
+          {t.donation.body}
         </p>
 
         <a
@@ -40,13 +41,13 @@ export const DonationModal: React.FC<DonationModalProps> = ({ isOpen, onClose })
           className="mt-5 w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center space-x-1.5 transition shadow-sm"
         >
           <Coffee className="w-4 h-4" />
-          <span>Ko-fi로 커피 후원하기</span>
+          <span>{t.donation.cta}</span>
           <ExternalLink className="w-3.5 h-3.5" />
         </a>
 
         <div className="mt-5 flex items-center justify-center space-x-1 text-[11px] text-slate-400">
           <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />
-          <span>보내주시는 응원에 진심으로 감사드립니다.</span>
+          <span>{t.donation.thanks}</span>
         </div>
       </div>
     </div>

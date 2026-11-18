@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLang } from '../i18n/lang';
 
 interface CompassLogoProps {
   size?: number;
@@ -11,6 +12,7 @@ export const CompassLogo: React.FC<CompassLogoProps> = ({
   className = '',
   showText = false,
 }) => {
+  const { t } = useLang();
   return (
     <div className={`inline-flex items-center space-x-2.5 select-none ${className}`}>
       <div
@@ -56,7 +58,7 @@ export const CompassLogo: React.FC<CompassLogoProps> = ({
             </span>
           </div>
           <span className="text-[11px] text-slate-500 dark:text-slate-400">
-            성과 평가 &amp; DISC 맞춤 면담 코파일럿
+            {t.meta.tagline}
           </span>
         </div>
       )}

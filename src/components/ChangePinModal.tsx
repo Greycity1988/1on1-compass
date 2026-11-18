@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, KeyRound, Check, ShieldCheck, AlertCircle } from 'lucide-react';
+import { useLang } from '../i18n/lang';
 
 interface ChangePinModalProps {
   isOpen: boolean;
@@ -15,6 +16,7 @@ export const ChangePinModal: React.FC<ChangePinModalProps> = ({
   onClose,
   onChangePin,
 }) => {
+  const { t } = useLang();
   const [currentPin, setCurrentPin] = useState('');
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
@@ -30,11 +32,11 @@ export const ChangePinModal: React.FC<ChangePinModalProps> = ({
 
     const next = newPin.trim();
     if (next.length < MIN_LENGTH) {
-      setError(`새 비밀번호는 최소 ${MIN_LENGTH}자 이상이어야 합니다.`);
+      setError(t.pin.tooShort(MIN_LENGTH));
       return;
     }
     if (next !== confirmPin.trim()) {
-      setError('새 비밀번호가 일치하지 않습니다. 다시 확인해 주세요.');
+      setError(t.pin.mismatch);
       return;
     }
 
@@ -78,10 +80,10 @@ export const ChangePinModal: React.FC<ChangePinModalProps> = ({
           <div className="py-8 text-center space-y-3">
             <ShieldCheck className="w-12 h-12 text-emerald-500 mx-auto" />
             <h3 className="text-base font-bold text-slate-900 dark:text-white">
-              비밀번호가 성공적으로 변경되었습니다!
+              {t.pin.doneTitle}
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              다른 기기의 로그인은 모두 해제되었습니다. 새 비밀번호로 다시 로그인해 주세요.
+              {t.pin.doneBody}
             </p>
           </div>
         ) : (
@@ -90,14 +92,14 @@ export const ChangePinModal: React.FC<ChangePinModalProps> = ({
               <div className="flex items-center space-x-2 text-emerald-600 dark:text-[#A8FF1A]">
                 <KeyRound className="w-4 h-4" />
                 <span className="text-xs font-bold uppercase tracking-wider">
-                  보안 설정
+                  {t.pin.eyebrow}
                 </span>
               </div>
               <h3 className="text-base font-bold text-slate-900 dark:text-white mt-0.5">
-                리더 관리자 비밀번호 변경
+                {t.pin.title}
               </h3>
               <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
-                영문, 숫자, 기호를 섞어 8자 이상으로 입력하세요.
+                {t.pin.hint}
               </p>
             </div>
 
@@ -110,42 +112,42 @@ export const ChangePinModal: React.FC<ChangePinModalProps> = ({
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                현재 비밀번호
+                {t.pin.current}
               </label>
               <input
                 required
                 type="password"
                 value={currentPin}
                 onChange={(e) => setCurrentPin(e.target.value)}
-                placeholder="현재 비밀번호"
+                placeholder={t.pin.current}
                 className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                새 비밀번호
+                {t.pin.next}
               </label>
               <input
                 required
                 type="password"
                 value={newPin}
                 onChange={(e) => setNewPin(e.target.value)}
-                placeholder="새로운 비밀번호 (8자 이상)"
+                placeholder={t.pin.nextPlaceholder}
                 className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                새 비밀번호 확인
+                {t.pin.confirm}
               </label>
               <input
                 required
                 type="password"
                 value={confirmPin}
                 onChange={(e) => setConfirmPin(e.target.value)}
-                placeholder="새 비밀번호 다시 입력"
+                placeholder={t.pin.confirmPlaceholder}
                 className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
@@ -156,7 +158,7 @@ export const ChangePinModal: React.FC<ChangePinModalProps> = ({
                 onClick={handleClose}
                 className="px-4 py-2 text-xs font-medium rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
               >
-                취소
+                {t.common.cancel}
               </button>
               <button
                 type="submit"
@@ -164,7 +166,7 @@ export const ChangePinModal: React.FC<ChangePinModalProps> = ({
                 className="px-4 py-2 text-xs font-bold rounded-xl disabled:opacity-50 bg-emerald-600 hover:bg-emerald-700 text-white flex items-center space-x-1.5 transition shadow-sm"
               >
                 <Check className="w-3.5 h-3.5" />
-                <span>비밀번호 저장</span>
+                <span>{t.pin.save}</span>
               </button>
             </div>
           </form>

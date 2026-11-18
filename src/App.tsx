@@ -7,11 +7,14 @@ import {
   getTeamMembers,
   INITIAL_LEADER_CONFIG,
   isLeaderAuthenticated,
+  defaultQuestions,
   saveLeaderConfig,
+  saveTeamMembers,
   setLeaderAuthenticated,
   upsertLocalMember,
 } from './utils/storage';
 import { ApiError, Backend, cloud, describeError, detectBackend, leaderSession } from './utils/api';
+import { useLang } from './i18n/lang';
 import { LeaderGate, LoginResult } from './components/LeaderGate';
 import { LeaderDashboard } from './components/LeaderDashboard';
 import { MemberSubmitView } from './components/MemberSubmitView';
@@ -31,6 +34,7 @@ const Loading: React.FC<{ label: string }> = ({ label }) => (
 );
 
 export const App: React.FC = () => {
+  const { lang, t } = useLang();
   const [backend, setBackend] = useState<Backend | null>(null);
   const [config, setConfig] = useState<LeaderConfig>(INITIAL_LEADER_CONFIG);
   const [members, setMembers] = useState<TeamMember[]>([]);
@@ -42,6 +46,10 @@ export const App: React.FC = () => {
   const [notice, setNotice] = useState<string | null>(null);
 
   const isCloud = backend?.mode === 'cloud';
+  // Until the leader saves their own questions, show the defaults in the viewer's language.
+  const viewConfig: LeaderConfig = config.surveyQuestions.length
+    ? config
+    : { ...config, surveyQuestions: defaultQuestions(lang) };
 
   useEffect(() => {
     detectBackend().then((b) => {
@@ -52,7 +60,9 @@ export const App: React.FC = () => {
         setIsAuthed(Boolean(leaderSession.get()));
       } else {
         setConfig(getLeaderConfig());
-        setMembers(getTeamMembers());
+        const initial = getTeamMembers(lang);
+        saveTeamMembers(initial); // keep the samples in the language of the first visit
+        setMembers(initial);
         setIsAuthed(isLeaderAuthenticated());
       }
     });
@@ -68,9 +78,9 @@ export const App: React.FC = () => {
   const report = useCallback(
     (err: unknown) => {
       if (err instanceof ApiError && err.status === 401) logout();
-      setNotice(describeError(err));
+      setNotice(describeError(err, t));
     },
-    [logout],
+    [logout, t],
   );
 
   // A member's private link
@@ -84,10 +94,10 @@ export const App: React.FC = () => {
       .getMemberByToken(urlToken)
       .then(setTokenMember)
       .catch((err) => {
-        if (!(err instanceof ApiError && err.status === 404)) setNotice(describeError(err));
+        if (!(err instanceof ApiError && err.status === 404)) setNotice(describeError(err, t));
         setTokenMember(null);
       });
-  }, [backend, urlToken]);
+  }, [backend, urlToken, t]);
 
   // The leader's member list
   useEffect(() => {
@@ -97,7 +107,7 @@ export const App: React.FC = () => {
 
   const login = async (pin: string): Promise<LoginResult> => {
     if (backend?.mode === 'local') {
-      if (pin !== (config.pin ?? INITIAL_LEADER_CONFIG.pin)) return { ok: false, message: '비밀번호가 일치하지 않습니다.' };
+      if (pin !== (config.pin ?? INITIAL_LEADER_CONFIG.pin)) return { ok: false, message: t.errors.wrongPin };
       setLeaderAuthenticated(true);
       setIsAuthed(true);
       return { ok: true };
@@ -107,13 +117,13 @@ export const App: React.FC = () => {
       setIsAuthed(true);
       return { ok: true };
     } catch (err) {
-      return { ok: false, message: describeError(err) };
+      return { ok: false, message: describeError(err, t) };
     }
   };
 
   const changePin = async (current: string, next: string): Promise<string | null> => {
     if (backend?.mode === 'local') {
-      if (current !== (config.pin ?? INITIAL_LEADER_CONFIG.pin)) return '현재 비밀번호가 일치하지 않습니다.';
+      if (current !== (config.pin ?? INITIAL_LEADER_CONFIG.pin)) return t.errors.wrongCurrentPin;
       const updated = { ...config, pin: next };
       setConfig(updated);
       saveLeaderConfig(updated);
@@ -123,8 +133,8 @@ export const App: React.FC = () => {
       await cloud.changePin(current, next);
       return null;
     } catch (err) {
-      if (err instanceof ApiError && err.code === 'wrong_pin') return '현재 비밀번호가 일치하지 않습니다.';
-      return describeError(err);
+      if (err instanceof ApiError && err.code === 'wrong_pin') return t.errors.wrongCurrentPin;
+      return describeError(err, t);
     }
   };
 
@@ -187,7 +197,7 @@ export const App: React.FC = () => {
       if (isAuthed) setMembers((list) => list.map((m) => (m.id === saved.id ? { ...m, ...saved } : m)));
       return saved;
     } catch (err) {
-      setNotice(describeError(err));
+      setNotice(describeError(err, t));
       return null;
     }
   };
@@ -196,7 +206,7 @@ export const App: React.FC = () => {
     <div role="alert" className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[60] max-w-md w-[calc(100%-2rem)] px-4 py-3 rounded-xl bg-rose-600 text-white text-xs font-semibold shadow-xl flex items-start gap-2">
       <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
       <span className="flex-1">{notice}</span>
-      <button type="button" aria-label="닫기" onClick={() => setNotice(null)}>
+      <button type="button" aria-label={t.common.close} onClick={() => setNotice(null)}>
         <X className="w-4 h-4" />
       </button>
     </div>
@@ -204,23 +214,23 @@ export const App: React.FC = () => {
 
   const demoBar = backend?.mode === 'local' && (
     <div className="bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 text-[11px] font-semibold text-center px-4 py-1.5 border-b border-amber-300/60 dark:border-amber-800/60">
-      로컬 데모 모드: 모든 데이터가 이 브라우저에만 저장되고, 구성원 링크도 이 브라우저에서만 열립니다. 팀에서 쓰려면 README의 배포 안내를 따라 주세요.
+      {t.app.demoBanner}
     </div>
   );
 
-  if (!backend) return <Loading label="불러오는 중입니다..." />;
+  if (!backend) return <Loading label={t.common.loading} />;
 
   // Case 1: a member opened their private link (?token=...)
   if (urlToken) {
-    if (tokenMember === undefined) return <Loading label="설문지를 불러오는 중입니다..." />;
+    if (tokenMember === undefined) return <Loading label={t.common.loadingSurvey} />;
     if (!tokenMember) {
       return (
         <FullScreen>
           <div className="max-w-md w-full p-6 rounded-2xl bg-white dark:bg-[#18191d] border border-slate-200 dark:border-slate-800 shadow-xl text-center space-y-3">
             <AlertCircle className="w-10 h-10 text-rose-500 mx-auto" />
-            <h2 className="text-base font-bold text-slate-900 dark:text-white">유효하지 않은 링크입니다</h2>
+            <h2 className="text-base font-bold text-slate-900 dark:text-white">{t.app.invalidLinkTitle}</h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-              전달받은 링크 주소를 다시 확인하시거나, 담당 리더{config.leaderName ? `(${config.leaderName})` : ''}에게 새 링크를 요청해 주세요.
+              {t.app.invalidLinkBody(config.leaderName)}
             </p>
             <button
               onClick={() => {
@@ -228,7 +238,7 @@ export const App: React.FC = () => {
               }}
               className="mt-3 px-4 py-2 text-xs font-bold rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900"
             >
-              홈으로 이동
+              {t.app.goHome}
             </button>
           </div>
           {noticeBar}
@@ -240,7 +250,7 @@ export const App: React.FC = () => {
         {demoBar}
         <MemberSubmitView
           member={tokenMember}
-          leaderConfig={config}
+          leaderConfig={viewConfig}
           onSubmit={async (answers, disc) => {
             const saved = await submitAnswers(tokenMember, answers, disc);
             if (saved) setTokenMember(saved);
@@ -267,7 +277,7 @@ export const App: React.FC = () => {
         {demoBar}
         <MemberSubmitView
           member={previewMember}
-          leaderConfig={config}
+          leaderConfig={viewConfig}
           onSubmit={async (answers, disc) => {
             const saved = await submitAnswers(previewMember, answers, disc);
             if (saved) setPreviewMember({ ...previewMember, ...saved });
@@ -299,7 +309,7 @@ export const App: React.FC = () => {
     <>
       {demoBar}
       <LeaderDashboard
-        config={config}
+        config={viewConfig}
         members={members}
         onUpdateConfig={updateConfig}
         onUpsertMember={upsertMember}

@@ -1,10 +1,11 @@
 import { LeaderConfig, SurveyQuestion, TeamMember } from '../types';
+import type { Lang } from '../i18n/lang';
 
 /**
  * Default pre-1:1 survey. Leaders can edit, add or remove questions in the dashboard; the edited
  * set is stored with the team settings (server or this browser), not in code.
  */
-export const DEFAULT_SURVEY_QUESTIONS: SurveyQuestion[] = [
+const DEFAULT_SURVEY_QUESTIONS_KO: SurveyQuestion[] = [
   {
     id: 'q1',
     title: 'Q1. 올 한 해 가장 보람찼던 순간',
@@ -71,6 +72,77 @@ export const DEFAULT_SURVEY_QUESTIONS: SurveyQuestion[] = [
   },
 ];
 
+const DEFAULT_SURVEY_QUESTIONS_EN: SurveyQuestion[] = [
+  {
+    id: 'q1',
+    title: 'Q1. Your most rewarding moment this year',
+    question: 'Thank you for all your hard work this year. When did you feel most proud of your work, the moment you thought "this was really worth it"?',
+    placeholder: 'e.g. Delivering a big project on time, or getting great feedback from a client or a colleague',
+    required: true,
+    category: 'achievement',
+  },
+  {
+    id: 'q2',
+    title: 'Q2. Key achievement and impact',
+    question: 'Which piece of work that you led do you see as your most important achievement? Describe the original goal, the actual result (numbers or qualitative), and the impact on the team and the organisation.',
+    placeholder: 'e.g. Cut costs by 20% and reached 130% of target; automated a repeating task and saved 5 hours a week',
+    required: true,
+    category: 'achievement',
+  },
+  {
+    id: 'q3',
+    title: "Q3. What didn't go as planned, and why",
+    question: 'Is there any work that fell short of its goal or did not go as planned? Tell us honestly what happened (timing, resources, outside requests, collaboration) and what caused it.',
+    placeholder: 'e.g. A launch slipped because an external review ran late; requirements kept changing and caused confusion',
+    required: true,
+    category: 'bottleneck',
+  },
+  {
+    id: 'q4',
+    title: "Q4. Strengths you used, and what you'd do differently",
+    question: "What strength did you rely on most while getting things done (quick response, careful checking, flexible communication…)? If the same situation came up again, what would you do differently?",
+    placeholder: "e.g. Kept the client's trust by proposing a quick plan B / Next time I'd add two extra days for review",
+    required: true,
+    category: 'bottleneck',
+  },
+  {
+    id: 'q5',
+    title: 'Q5. Positive impact on colleagues and the team',
+    question: 'How has the way you work (sharing know-how, improving processes, positive communication…) had a good effect on your colleagues or the team?',
+    placeholder: 'e.g. Shared a review checklist with the team, lifted the mood in a busy period, led a study of a new tool',
+    required: false,
+    category: 'collaboration',
+  },
+  {
+    id: 'q6',
+    title: 'Q6. How you grew, and what you want to build next',
+    question: 'Which skill do you feel grew the most this year? And which skill would you most like to strengthen for your career from here?',
+    placeholder: 'e.g. My data analysis improved a lot / Next I want to get better at planning and presenting',
+    required: true,
+    category: 'growth',
+  },
+  {
+    id: 'q7',
+    title: 'Q7. Collaboration: help you got and help you gave',
+    question: 'Who supported you most this year, and how? And whom did you help in a meaningful way?',
+    placeholder: "e.g. A colleague double-checked my work before a deadline / I onboarded a new teammate one-on-one",
+    required: false,
+    category: 'collaboration',
+  },
+  {
+    id: 'q8',
+    title: 'Q8. Day-to-day challenges and the support you need',
+    question: 'What practical difficulties do you face in your daily work (roles, workload, processes, burnout…)? What support would you most like from your team lead in this 1:1?',
+    placeholder: 'e.g. Rebalancing work in busy periods, tools to automate repeating tasks, a talk about next quarter\'s role',
+    required: false,
+    category: 'expectation',
+  },
+];
+
+/** The default survey in the given language (used until the leader saves their own questions). */
+export const defaultQuestions = (lang: Lang): SurveyQuestion[] =>
+  lang === 'ko' ? DEFAULT_SURVEY_QUESTIONS_KO : DEFAULT_SURVEY_QUESTIONS_EN;
+
 const STORAGE_KEYS = {
   LEADER_CONFIG: '1on1_compass_leader_config_v2',
   TEAM_MEMBERS: '1on1_compass_team_members_v2',
@@ -91,11 +163,12 @@ export const INITIAL_LEADER_CONFIG: LeaderConfig = {
   leaderName: '',
   pin: LOCAL_DEMO_PIN,
   teamTitle: '',
-  surveyQuestions: DEFAULT_SURVEY_QUESTIONS,
+  // Empty means "not customised yet": the app shows defaultQuestions(lang).
+  surveyQuestions: [],
 };
 
 // Fictional people, shown only in local demo mode so a first-time visitor can see a filled dashboard.
-const SAMPLE_MEMBERS: TeamMember[] = [
+const SAMPLE_MEMBERS_KO: TeamMember[] = [
   {
     id: 'sample-1',
     token: 'tk_9a8f2c7d1e4b6092',
@@ -158,6 +231,43 @@ const SAMPLE_MEMBERS: TeamMember[] = [
   },
 ];
 
+const SAMPLE_MEMBERS_EN: TeamMember[] = [
+  {
+    ...SAMPLE_MEMBERS_KO[0],
+    name: 'Alex Kim',
+    department: 'Marketing',
+    role: 'Performance marketer (senior)',
+    discResult: { ...SAMPLE_MEMBERS_KO[0].discResult!, patternName: 'Administrator' },
+    answers: {
+      q1: 'During the year-end promotion I checked every launch late into the evening. We hit the target with zero errors and the client sent us a thank-you email. That was the most rewarding moment.',
+      q2: 'I led a project to rework our ad channel mix. Cost per conversion dropped 24% versus last quarter, and automating the weekly report saved the team about 5 hours a week.',
+      q3: 'In October an external review ran late and the campaign went live half a day behind schedule. I wish I had agreed on more buffer time in advance.',
+      q4: 'A thorough checklist kept launch errors at zero. Next time I would set up a process to get approvals at least two days earlier.',
+      q5: 'I wrote a review checklist and spec guide and shared it with the team, which helped new colleagues avoid the same mistakes.',
+      q6: 'My data preparation and performance tracking improved a lot. Next I want to go beyond analysis and propose and pitch new strategies myself.',
+      q7: 'Jamie helped me optimise campaigns during the busy season, which was a huge help. I set up dashboards one-on-one for a teammate who joined in the second half.',
+      q8: 'Reporting and setup piled up in busy periods and it was physically tiring. I would like to discuss automation tools or sharing the load in peak season.',
+    },
+  },
+  {
+    ...SAMPLE_MEMBERS_KO[1],
+    name: 'Jamie Park',
+    department: 'Marketing',
+    role: 'Account executive (lead)',
+    discResult: { ...SAMPLE_MEMBERS_KO[1].discResult!, patternName: 'Results-Oriented' },
+    answers: {
+      q1: 'I led our pitch for the new season, kept the existing client and even won a bigger budget. That was the most rewarding moment.',
+      q2: 'I introduced short-form video as a new channel. In the first week we reached 145% of the sales target, and our partnership with the client got stronger.',
+      q3: 'We moved fast and did not align billing rules with the operations team in advance, which caused confusion at month-end close.',
+      q4: 'When the client suddenly changed the brief, I offered three alternatives on the spot. Next time I would share changes with the internal team sooner.',
+      q5: 'Even during tense pitches and promotions I kept the team upbeat and represented our position clearly in client meetings.',
+      q6: 'My negotiation and drive grew a lot. Next I want to build mentoring and project management skills to help junior colleagues grow.',
+      q7: 'Alex backed our proposal with solid data, which is why we won. I coached new colleagues on client communication and email writing.',
+      q8: 'Urgent ad hoc requests leave little time for long-term strategy. In quieter periods I would like protected time to focus on planning.',
+    },
+  },
+];
+
 // ---------------------------------------------------------------- local demo mode (this browser only)
 
 export function getLeaderConfig(): LeaderConfig {
@@ -168,7 +278,7 @@ export function getLeaderConfig(): LeaderConfig {
     return {
       ...INITIAL_LEADER_CONFIG,
       ...parsed,
-      surveyQuestions: parsed.surveyQuestions?.length ? parsed.surveyQuestions : DEFAULT_SURVEY_QUESTIONS,
+      surveyQuestions: Array.isArray(parsed.surveyQuestions) ? parsed.surveyQuestions : [],
     };
   } catch {
     return INITIAL_LEADER_CONFIG;
@@ -179,14 +289,16 @@ export function saveLeaderConfig(config: LeaderConfig): void {
   localStorage.setItem(STORAGE_KEYS.LEADER_CONFIG, JSON.stringify(config));
 }
 
-export function getTeamMembers(): TeamMember[] {
+/** Members saved in this browser; on first visit, fictional samples in the given language. */
+export function getTeamMembers(lang: Lang = 'ko'): TeamMember[] {
+  const samples = lang === 'ko' ? SAMPLE_MEMBERS_KO : SAMPLE_MEMBERS_EN;
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.TEAM_MEMBERS);
-    if (raw === null) return SAMPLE_MEMBERS;
+    if (raw === null) return samples;
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : SAMPLE_MEMBERS;
+    return Array.isArray(parsed) ? parsed : samples;
   } catch {
-    return SAMPLE_MEMBERS;
+    return samples;
   }
 }
 
@@ -226,9 +338,9 @@ export function setLeaderAuthenticated(auth: boolean): void {
 }
 
 /** Shows ISO times from the server in local time; older plain-text values pass through unchanged. */
-export function formatDateTime(value?: string): string {
+export function formatDateTime(value?: string, lang: Lang = 'ko'): string {
   if (!value) return '';
   const d = new Date(value);
   if (!/^\d{4}-\d{2}-\d{2}T/.test(value) || Number.isNaN(d.getTime())) return value;
-  return d.toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleString(lang === 'ko' ? 'ko-KR' : 'en-US', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
 }

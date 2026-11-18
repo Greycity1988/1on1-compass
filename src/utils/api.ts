@@ -1,4 +1,5 @@
 import { DiscSubmissionResult, LeaderConfig, TeamMember } from '../types';
+import type { UiStrings } from '../i18n/ui';
 
 /** Team settings the server shares with everyone (never the password). */
 export type PublicConfig = Pick<LeaderConfig, 'leaderName' | 'teamTitle' | 'surveyQuestions'>;
@@ -86,25 +87,25 @@ export const cloud = {
     call<{ config: PublicConfig }>('/api/config', { method: 'PUT', body: json({ config }) }, true).then((d) => d.config),
 };
 
-/** Korean message for an API failure. */
-export function describeError(err: unknown): string {
+/** User-facing message for an API failure, in the current language. */
+export function describeError(err: unknown, t: UiStrings): string {
   const code = err instanceof ApiError ? err.code : '';
   switch (code) {
     case 'wrong_pin':
-      return '비밀번호가 일치하지 않습니다.';
+      return t.errors.wrongPin;
     case 'too_many_attempts':
-      return '시도가 너무 많습니다. 15분 뒤에 다시 시도해 주세요.';
+      return t.errors.tooMany;
     case 'weak_pin':
-      return '새 비밀번호는 8자 이상이어야 합니다.';
+      return t.errors.weakPin(8);
     case 'setup_required':
-      return '서버에 첫 비밀번호(LEADER_PIN 환경 변수)가 설정되지 않았습니다. README의 배포 안내를 확인해 주세요.';
+      return t.errors.setupRequired;
     case 'unauthorized':
-      return '로그인이 만료되었습니다. 다시 로그인해 주세요.';
+      return t.errors.expired;
     case 'locked':
-      return '면담이 이미 시작되어 답변을 수정할 수 없습니다. 리더에게 문의해 주세요.';
+      return t.errors.locked;
     case 'not_found':
-      return '대상을 찾을 수 없습니다.';
+      return t.errors.notFound;
     default:
-      return '서버와 통신하지 못했습니다. 잠시 뒤 다시 시도해 주세요.';
+      return t.errors.network;
   }
 }

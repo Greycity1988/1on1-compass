@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Lock, ArrowRight, ShieldCheck, KeyRound } from 'lucide-react';
 import { CompassLogo } from './CompassLogo';
+import { LangToggle } from './LangToggle';
+import { useLang } from '../i18n/lang';
 
 export type LoginResult = { ok: true } | { ok: false; message: string };
 
@@ -13,6 +15,7 @@ interface LeaderGateProps {
 }
 
 export const LeaderGate: React.FC<LeaderGateProps> = ({ onLogin, demoPin, setupRequired }) => {
+  const { t } = useLang();
   const [pin, setPin] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
@@ -27,7 +30,8 @@ export const LeaderGate: React.FC<LeaderGateProps> = ({ onLogin, demoPin, setupR
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#0f1013] flex flex-col items-center justify-center p-4 selection:bg-emerald-500/20">
+    <div className="relative min-h-screen bg-slate-50 dark:bg-[#0f1013] flex flex-col items-center justify-center p-4 selection:bg-emerald-500/20">
+      <LangToggle className="absolute top-4 right-4" />
       <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-[#18191d] border border-slate-200 dark:border-slate-800 shadow-2xl p-6 sm:p-8 text-center space-y-6 animate-fade-in">
         <div className="flex justify-center">
           <CompassLogo size={48} showText={false} />
@@ -38,14 +42,14 @@ export const LeaderGate: React.FC<LeaderGateProps> = ({ onLogin, demoPin, setupR
             1on1 <span className="text-emerald-600 dark:text-[#A8FF1A]">Compass</span>
           </h1>
           <p className="text-xs text-slate-400 mt-1">
-            성과 평가 &amp; DISC 맞춤 면담 코파일럿
+            {t.meta.tagline}
           </p>
         </div>
 
         <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-300 flex items-center space-x-2">
           <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-[#A8FF1A] flex-shrink-0" />
           <span className="text-left leading-tight">
-            구성원 평가 및 답변 보호를 위해 리더 비밀번호 인증이 필요합니다.
+            {t.gate.notice}
           </span>
         </div>
 
@@ -60,8 +64,8 @@ export const LeaderGate: React.FC<LeaderGateProps> = ({ onLogin, demoPin, setupR
                   setPin(e.target.value);
                   setError(null);
                 }}
-                placeholder="리더 비밀번호 입력"
-                aria-label="리더 비밀번호"
+                placeholder={t.gate.placeholder}
+                aria-label={t.gate.ariaLabel}
                 maxLength={64}
                 autoFocus
                 className={`w-full pl-10 pr-4 py-3 text-center text-sm font-bold tracking-widest rounded-2xl border bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition ${
@@ -84,20 +88,20 @@ export const LeaderGate: React.FC<LeaderGateProps> = ({ onLogin, demoPin, setupR
             className="w-full py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs sm:text-sm flex items-center justify-center space-x-2 transition shadow-md"
           >
             <Lock className="w-4 h-4" />
-            <span>{isVerifying ? '인증 확인 중...' : '리더 대시보드 로그인'}</span>
+            <span>{isVerifying ? t.gate.verifying : t.gate.submit}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
 
         {setupRequired && (
           <p role="alert" className="text-[11px] text-rose-500 leading-relaxed">
-            아직 리더 비밀번호가 설정되지 않았습니다. 배포 환경 변수에 LEADER_PIN을 추가한 뒤 다시 배포해 주세요.
+            {t.gate.setupRequired}
           </p>
         )}
 
         {demoPin && (
           <p className="text-[11px] text-slate-400">
-            데모 비밀번호: <strong className="text-slate-700 dark:text-slate-300 font-mono">{demoPin}</strong>
+            {t.gate.demoPin} <strong className="text-slate-700 dark:text-slate-300 font-mono">{demoPin}</strong>
           </p>
         )}
       </div>
