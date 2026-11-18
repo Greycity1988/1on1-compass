@@ -252,7 +252,7 @@ describe('config', () => {
 describe('demo mode', () => {
   it('DEMO_MODE=true ignores a connected database', async () => {
     __setRedisForTests(undefined);
-    process.env.DEMO_MODE = 'true';
+    process.env.DEMO_MODE = ' True ';
     process.env.KV_REST_API_URL = 'https://example.invalid';
     process.env.KV_REST_API_TOKEN = 'test-token';
     try {

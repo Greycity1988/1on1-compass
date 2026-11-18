@@ -35,7 +35,7 @@ export const __setRedisForTests = (r: RedisLike | null | undefined) => {
 };
 
 /** DEMO_MODE=true keeps a public demo storage-free even if a database gets connected by mistake. */
-export const isDemoMode = () => process.env.DEMO_MODE === 'true';
+export const isDemoMode = () => ['true', '1', 'yes', 'on'].includes((process.env.DEMO_MODE ?? '').trim().toLowerCase());
 
 export function getRedis(): RedisLike | null {
   if (redisOverride !== undefined) return redisOverride;
